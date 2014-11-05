@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: tuxbox-enigma 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-11-05 14:38+0000\n"
-"PO-Revision-Date: 2014-10-15 00:29+0100\n"
+"PO-Revision-Date: 2014-10-28 23:27+0100\n"
 "Last-Translator: mike99 <mike99@gmx.net>\n"
 "Language-Team: openATV\n"
 "Language: de\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.6.9\n"
+"X-Generator: Poedit 1.5.7\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 msgid ""
@@ -2009,8 +2009,8 @@ msgid ""
 "Configure the number of days old timers are kept before they are "
 "automatically removed from the timer list."
 msgstr ""
-"Legen Sie die Vorhaltezeit (in Tagen) für abgelaufene Timer fest, "
-"nach der diese automatisch aus der Timer-Liste gelöscht werden."
+"Legen Sie die Vorhaltezeit (in Tagen) für abgelaufene Timer fest, nach der "
+"diese automatisch aus der Timer-Liste gelöscht werden."
 
 msgid ""
 "Configure the number of days after which items are automaticaly removed from "
@@ -2130,6 +2130,14 @@ msgstr "Verbundene Clients"
 #
 msgid "Connected to"
 msgstr "Verbunden mit"
+
+# NimManager.py
+msgid "internally loopthrough to"
+msgstr "Intern verbunden mit "
+
+# NimManager.py
+msgid "externally loopthrough to"
+msgstr "Extern verbunden mit"
 
 #
 msgid "Connected!"
@@ -5978,7 +5986,10 @@ msgstr "OK drücken um weitere Details zu %s zu erhalten."
 
 #
 msgid "Press OK to scan"
-msgstr "OK drücken zum starten des Suchlaufs"
+msgstr ""
+"OK drücken zum starten des Suchlaufs.\n"
+"Bei meheren Tunern bitte Suchlauf\n"
+"für jeden Tuner einzeln Starten."
 
 #
 msgid "Press OK to select a Provider."
@@ -11421,6 +11432,14 @@ msgstr "Kanal als Startkanal auswählen"
 msgid "stop using as startup service"
 msgstr "Kanal als Startkanal entfernen"
 
+# Screens/ChannelSelection.py
+msgid "set as startup service from standby"
+msgstr "Kanal als Startkanal nach Standby auswählen"
+
+# Screens/ChannelSelection.py
+msgid "stop using as startup service from standby"
+msgstr "Kanal als Startkanal nach Standby entfernen"
+
 msgid "setup PIN"
 msgstr "Setup-PIN"
 
@@ -14719,7 +14738,7 @@ msgstr ""
 "eigene Verantwortung!!!\n"
 "\n"
 "\n"
-"Wollen Sie trotzdem noch ein Onlne-Update durchführen?"
+"Wollen Sie trotzdem noch ein Online-Update durchführen?"
 
 # PowerLost
 msgid ""
