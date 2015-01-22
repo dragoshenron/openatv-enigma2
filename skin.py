@@ -149,7 +149,10 @@ profile("LoadSkinDefaultDone")
 def parseCoordinate(s, e, size=0, font=None):
 	s = s.strip()
 	if s == "center":
-		val = (e - size)/2
+		if not size:
+			val = 0
+		else:
+			val = (e - size)/2
 	elif s == '*':
 		return None
 	else:
@@ -314,6 +317,17 @@ class AttributeParser:
 			self.guiObject.resize(eSize(*value))
 		else:
 			self.guiObject.resize(parseSize(value, self.scaleTuple, self.guiObject, self.desktop))
+	def animationPaused(self, value):
+		pass
+	def animationMode(self, value):
+		self.guiObject.setAnimationMode(
+			{ "disable": 0x00,
+				"off": 0x00,
+				"offshow": 0x10,
+				"offhide": 0x01,
+				"onshow": 0x01,
+				"onhide": 0x10,
+			}[value])
 	def title(self, value):
 		self.guiObject.setTitle(_(value))
 	def text(self, value):
@@ -548,7 +562,7 @@ def loadSingleSkinData(desktop, skin, path_prefix):
 
 
 	for c in skin.findall("subtitles"):
-		from enigma import eWidget, eSubtitleWidget
+		from enigma import eSubtitleWidget
 		scale = ((1,1),(1,1))
 		for substyle in c.findall("sub"):
 			get_attr = substyle.attrib.get

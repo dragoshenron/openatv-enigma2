@@ -1,4 +1,4 @@
-SUBDIRS = fonts extensions keymaps
+SUBDIRS = fonts keymaps
 
 dist_pkgdata_DATA = \
 	encoding.conf \
@@ -25,6 +25,10 @@ SUBDIRS += displaydualtext
 else
 SUBDIRS += displaytext
 endif
+endif
+
+if HAVE_COLORLCD3
+SUBDIRS += display128dm
 endif
 
 if HAVE_COLORLCD2

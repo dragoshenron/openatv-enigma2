@@ -370,7 +370,6 @@ int eDVBCableTransponderData::getFecInner() const
 	case FEC_2_3: return eDVBFrontendParametersCable::FEC_2_3;
 	case FEC_3_4: return eDVBFrontendParametersCable::FEC_3_4;
 	case FEC_5_6: return eDVBFrontendParametersCable::FEC_5_6;
-	case FEC_6_7: return eDVBFrontendParametersCable::FEC_6_7;
 	case FEC_7_8: return eDVBFrontendParametersCable::FEC_7_8;
 	case FEC_8_9: return eDVBFrontendParametersCable::FEC_8_9;
 	case FEC_3_5: return eDVBFrontendParametersCable::FEC_3_5;
@@ -556,9 +555,9 @@ int eDVBTerrestrialTransponderData::getPlpId() const
 {
 	if (originalValues) return transponderParameters.plpid;
 
-#if DVB_API_VERSION > 5 || DVB_API_VERSION == 5 && DVB_API_VERSION_MINOR >= 9
+#if defined DTV_STREAM_ID
 	return getProperty(DTV_STREAM_ID);
-#elif DVB_API_VERSION == 5 && DVB_API_VERSION_MINOR >= 3
+#elif defined DTV_DVBT2_PLP_ID
 	return getProperty(DTV_DVBT2_PLP_ID);
 #else
 	return -1;
