@@ -1139,10 +1139,6 @@ msgid "Attach a file"
 msgstr "Datei anhängen"
 
 #
-msgid "Audio"
-msgstr "Audio"
-
-#
 msgid "Audio options..."
 msgstr "Ton-Einstellungen"
 
@@ -16059,3 +16055,15 @@ msgstr "System-Temperatur:\t%s"
 
 msgid "Processor temperature:\t%s"
 msgstr "Prozessor-Temperatur:\t%s"
+
+msgid "Clone TV screen to LCD"
+msgstr "Spiegel TV Bild zum LCD"
+
+msgid "Shows live tv or informations on LCD."
+msgstr "Zeige aktuelles TV oder Information auf den LCD."
+
+msgid "Show 480/576p 24fps as"
+msgstr "Zeige 480/576p 24FPS als"
+
+msgid "This option allows you to choose how to display SD progressive 24Hz on your TV. (as not all TV's support these resolutions)"
+msgstr "Diese Option erlaubt es einzustellen wie ein 480/576p 24Hz Video angezeigt wird. (Nicht alle Fernseher unterstützen alle Formate)"
