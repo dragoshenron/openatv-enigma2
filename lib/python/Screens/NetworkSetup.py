@@ -28,6 +28,7 @@ from Components.ActionMap import ActionMap, NumberActionMap, HelpableActionMap
 from Tools.Directories import fileExists, resolveFilename, SCOPE_PLUGINS, SCOPE_ACTIVE_SKIN
 from Tools.LoadPixmap import LoadPixmap
 from Plugins.Plugin import PluginDescriptor
+from subprocess import call
 import commands
 
 
@@ -569,7 +570,7 @@ class AdapterSetup(Screen, ConfigListScreen, HelpableScreen):
 				if self.hasGatewayConfigEntry.value:
 					self.list.append(getConfigListEntry(_('Gateway'), self.gatewayConfigEntry))
 			havewol = False
-			if SystemInfo["WakeOnLAN"] and not getBoxType() in ('et10000', 'gb800seplus', 'gb800ueplus', 'gbultrase', 'gbultraue', 'gbipbox', 'gbquad'):
+			if SystemInfo["WakeOnLAN"] and not getBoxType() in ('et10000', 'gb800seplus', 'gb800ueplus', 'gbultrase', 'gbultraue', 'gbipbox', 'gbquad', 'gbx1', 'gbx3'):
 				havewol = True
 			if getBoxType() == 'et10000' and self.iface == 'eth0':
 				havewol = False
@@ -1918,75 +1919,77 @@ class NetworkFtp(Screen):
 	def __init__(self, session):
 		Screen.__init__(self, session)
 		Screen.setTitle(self, _("FTP Setup"))
+		self.skinName = "NetworkSamba"
 		self.onChangedEntry = [ ]
-		self['lab1'] = Label(_("Ftpd service type: Vsftpd server"))
+		self['lab1'] = Label(_("Autostart:"))
+		self['labactive'] = Label(_(_("Disabled")))
 		self['lab2'] = Label(_("Current Status:"))
 		self['labstop'] = Label(_("Stopped"))
 		self['labrun'] = Label(_("Running"))
-		self['key_green'] = Label(_("Enable"))
-		self['key_red'] = Label()
-		self.my_ftp_active = False
+		self['key_green'] = Label(_("Start"))
+		self["key_red"] = Label()
+		self['key_yellow'] = Label(_("Autostart"))
+		self["key_blue"] =  Label()
 		self.Console = Console()
-		self['actions'] = ActionMap(['WizardActions', 'ColorActions'], {'ok': self.close, 'back': self.close, 'green': self.FtpStartStop})
+		self.my_ftp_active = False
+		self.my_ftp_run = False
+		self['actions'] = ActionMap(['WizardActions', 'ColorActions'], {'ok': self.close, 'back': self.close, 'green': self.FtpStartStop, 'yellow': self.activateFtp})
+		self.Console = Console()
 		self.onLayoutFinish.append(self.updateService)
 
 	def createSummary(self):
 		return NetworkServicesSummary
 
 	def FtpStartStop(self):
-		if not self.my_ftp_active:
-			if fileExists('/etc/inetd.conf'):
-				inme = open('/etc/inetd.conf', 'r')
-				out = open('/etc/inetd.tmp', 'w')
-				for line in inme.readlines():
-					if 'vsftpd' in line:
-						line = line.replace('#', '')
-					out.write(line)
-				out.close()
-				inme.close()
-			if fileExists('/etc/inetd.tmp'):
-				move('/etc/inetd.tmp', '/etc/inetd.conf')
-				self.Console.ePopen('killall -HUP inetd')
-				self.updateService()
-		elif self.my_ftp_active:
-			if fileExists('/etc/inetd.conf'):
-				inme = open('/etc/inetd.conf', 'r')
-				out = open('/etc/inetd.tmp', 'w')
-				for line in inme.readlines():
-					if 'vsftpd' in line:
-						line = '#' + line
-					out.write(line)
-				out.close()
-				inme.close()
-			if fileExists('/etc/inetd.tmp'):
-				move('/etc/inetd.tmp', '/etc/inetd.conf')
-				self.Console.ePopen('killall -HUP inetd')
-				self.updateService()
+		commands = []
+		if not self.my_ftp_run:
+			commands.append('/etc/init.d/vsftpd start')
+		elif self.my_ftp_run:
+			commands.append('/etc/init.d/vsftpd stop')
+		self.Console.eBatch(commands, self.StartStopCallback, debug=True)
+
+	def StartStopCallback(self, result = None, retval = None, extra_args = None):
+		time.sleep(3)
+		self.updateService()
+
+	def activateFtp(self):
+		commands = []
+		if fileExists('/etc/rc2.d/S20vsftpd'):
+			commands.append('update-rc.d -f vsftpd remove')
+		else:
+			commands.append('update-rc.d -f vsftpd defaults')
+		self.Console.eBatch(commands, self.StartStopCallback, debug=True)
 
 	def updateService(self):
+		import process		
+		p = process.ProcessList()		
+		ftp_process = str(p.named('vsftpd')).strip('[]')
 		self['labrun'].hide()
 		self['labstop'].hide()
+		self['labactive'].setText(_("Disabled"))
 		self.my_ftp_active = False
-		if fileExists('/etc/inetd.conf'):
-			f = open('/etc/inetd.conf', 'r')
-			for line in f.readlines():
-				parts = line.strip().split()
-				if parts[0] == 'ftp':
-					self.my_ftp_active = True
-					continue
-			f.close()
-		if self.my_ftp_active:
+		if fileExists('/etc/rc2.d/S20vsftpd'):
+			self['labactive'].setText(_("Enabled"))
+			self['labactive'].show()
+			self.my_ftp_active = True
+
+		self.my_ftp_run = False
+		if ftp_process:
+			self.my_ftp_run = True
+		if self.my_ftp_run:
 			self['labstop'].hide()
+			self['labactive'].show()
 			self['labrun'].show()
-			self['key_green'].setText(_("Disable"))
-			status_summary= self['lab2'].text + ' ' + self['labrun'].text
+			self['key_green'].setText(_("Stop"))
+			status_summary = self['lab2'].text + ' ' + self['labrun'].text
 		else:
-			self['labstop'].show()
 			self['labrun'].hide()
-			self['key_green'].setText(_("Enable"))
-			status_summary= self['lab2'].text + ' ' + self['labstop'].text
+			self['labstop'].show()
+			self['labactive'].show()
+			self['key_green'].setText(_("Start"))
+			status_summary = self['lab2'].text + ' ' + self['labstop'].text
 		title = _("FTP Setup")
-		autostartstatus_summary = ""
+		autostartstatus_summary = self['lab1'].text + ' ' + self['labactive'].text
 
 		for cb in self.onChangedEntry:
 			cb(title, status_summary, autostartstatus_summary)
@@ -2091,10 +2094,10 @@ class NetworkNfs(Screen):
 		self.updateService()
 
 	def Nfsset(self):
-		if fileExists('/etc/rc2.d/S11nfsserver'):
+		if fileExists('/etc/rc2.d/S11nfsserver') or fileExists('/etc/rc2.d/S13nfsserver') or fileExists('/etc/rc2.d/S20nfsserver'):
 			self.Console.ePopen('update-rc.d -f nfsserver remove', self.StartStopCallback)
 		else:
-			self.Console.ePopen('update-rc.d -f nfsserver defaults 11', self.StartStopCallback)
+			self.Console.ePopen('update-rc.d -f nfsserver defaults 13', self.StartStopCallback)
 
 	def updateService(self):
 		import process
@@ -2105,7 +2108,7 @@ class NetworkNfs(Screen):
 		self['labactive'].setText(_("Disabled"))
 		self.my_nfs_active = False
 		self.my_nfs_run = False
-		if fileExists('/etc/rc2.d/S11nfsserver'):
+		if fileExists('/etc/rc2.d/S13nfsserver'):
 			self['labactive'].setText(_("Enabled"))
 			self['labactive'].show()
 			self.my_nfs_active = True
@@ -2150,12 +2153,9 @@ class RemoteTunerServer(Screen):
 		self.onLayoutFinish.append(self.InstallCheck)
 
 	def InstallCheck(self):
-		print"INSTALL"
-		print '/usr/bin/opkg list_installed ' + self.service_name
 		self.Console.ePopen('/usr/bin/opkg list_installed ' + self.service_name, self.checkNetworkState)
 
 	def checkNetworkState(self, str, retval, extra_args):
-		print "checkNetworkState ", str
 		if 'Collected errors' in str:
 			self.session.openWithCallback(self.close, MessageBox, _("A background update check is in progress, please wait a few minutes and try again."), type=MessageBox.TYPE_INFO, timeout=10, close_on_any_key=True)
 		elif not str:
@@ -2168,7 +2168,6 @@ class RemoteTunerServer(Screen):
 			self.updateService()
 
 	def checkNetworkStateFinished(self, result, retval,extra_args=None):
-		print "checkNetworkStateFinished ", result
 		if 'bad address' in result:
 			self.session.openWithCallback(self.InstallPackageFailed, MessageBox, _("Your %s %s is not connected to the internet, please check your network settings and try again.") % (getMachineBrand(), getMachineName()), type=MessageBox.TYPE_INFO, timeout=10, close_on_any_key=True)
 		elif ('wget returned 1' or 'wget returned 255' or '404 Not Found') in result:
@@ -2177,7 +2176,6 @@ class RemoteTunerServer(Screen):
 			self.session.openWithCallback(self.InstallPackage,MessageBox,_('Your %s %s will be restarted after the installation of service\nReady to install %s ?')  % (getMachineBrand(), getMachineName(), self.service_name), MessageBox.TYPE_YESNO)
 
 	def InstallPackage(self, val):
-		print "InstallPackage ", val
 		if val:
 			self.doInstall(self.installComplete, self.service_name)
 		else:
@@ -2185,12 +2183,10 @@ class RemoteTunerServer(Screen):
 			self.close()
 
 	def InstallPackageFailed(self, val):
-		print "InstallPackageFailed"
 		self.feedscheck.close()
 		self.close()
 
 	def doInstall(self, callback, pkgname):
-		print "doInstall " ,callback, pkgname
 		self.message = self.session.open(MessageBox,_("please wait..."), MessageBox.TYPE_INFO, enable_input = False)
 		self.message.setTitle(_('Installing Service'))
 		self.Console.ePopen('/usr/bin/opkg install ' + pkgname, callback)
@@ -2449,7 +2445,7 @@ class NetworkSamba(Screen):
 		self.my_Samba_active = False
 		self.my_Samba_run = False
 		self['actions'] = ActionMap(['WizardActions', 'ColorActions'], {'ok': self.close, 'back': self.close, 'red': self.UninstallCheck, 'green': self.SambaStartStop, 'yellow': self.activateSamba, 'blue': self.Sambashowlog})
-		self.service_name = basegroup + '-smbfs'
+		self.service_name = basegroup + '-samba'
 		self.onLayoutFinish.append(self.InstallCheck)
 
 	def InstallCheck(self):
@@ -2533,8 +2529,6 @@ class NetworkSamba(Screen):
 		commands = []
 		if not self.my_Samba_run:
 			commands.append('/etc/init.d/samba start')
-			commands.append('nmbd -D')
-			commands.append('smbd -D')
 		elif self.my_Samba_run:
 			commands.append('/etc/init.d/samba stop')
 			commands.append('killall nmbd')
@@ -2546,35 +2540,27 @@ class NetworkSamba(Screen):
 		self.updateService()
 
 	def activateSamba(self):
-		if access('/etc/network/if-up.d/01samba-start', X_OK):
-			chmod('/etc/network/if-up.d/01samba-start', 0644)
-		elif not access('/etc/network/if-up.d/01samba-start', X_OK):
-			chmod('/etc/network/if-up.d/01samba-start', 0755)
-
+		commands = []
 		if fileExists('/etc/rc2.d/S20samba'):
-			self.Console.ePopen('update-rc.d -f samba remove', self.StartStopCallback)
+			commands.append('update-rc.d -f samba remove')
 		else:
-			self.Console.ePopen('update-rc.d -f samba defaults', self.StartStopCallback)
+			commands.append('update-rc.d -f samba defaults')
+		self.Console.eBatch(commands, self.StartStopCallback, debug=True)
 
 	def updateService(self):
-		import process
-		p = process.ProcessList()
+		import process		
+		p = process.ProcessList()		
 		samba_process = str(p.named('smbd')).strip('[]')
 		self['labrun'].hide()
 		self['labstop'].hide()
 		self['labactive'].setText(_("Disabled"))
 		self.my_Samba_active = False
-		self.my_Samba_run = False
 		if fileExists('/etc/rc2.d/S20samba'):
 			self['labactive'].setText(_("Enabled"))
 			self['labactive'].show()
 			self.my_Samba_active = True
 
-		if access('/etc/network/if-up.d/01samba-start', X_OK):
-			self['labactive'].setText(_("Enabled"))
-			self['labactive'].show()
-			self.my_Samba_active = True
-
+		self.my_Samba_run = False
 		if samba_process:
 			self.my_Samba_run = True
 		if self.my_Samba_run:
@@ -2618,74 +2604,77 @@ class NetworkTelnet(Screen):
 	def __init__(self, session):
 		Screen.__init__(self, session)
 		Screen.setTitle(self, _("Telnet Setup"))
+		self.skinName = "NetworkSamba"
 		self.onChangedEntry = [ ]
-		self['lab1'] = Label(_("You can disable Telnet Server and use ssh to login."))
+		self['lab1'] = Label(_("Autostart:"))
+		self['labactive'] = Label(_(_("Disabled")))
 		self['lab2'] = Label(_("Current Status:"))
 		self['labstop'] = Label(_("Stopped"))
 		self['labrun'] = Label(_("Running"))
-		self['key_green'] = Label(_("Enable"))
-		self['key_red'] = Label()
+		self['key_green'] = Label(_("Start"))
+		self['key_red'] = Label(_("Remove Service"))
+		self['key_yellow'] = Label(_("Autostart"))
+		self['key_blue'] = Label(_("Show Log"))
 		self.Console = Console()
 		self.my_telnet_active = False
-		self['actions'] = ActionMap(['WizardActions', 'ColorActions'], {'ok': self.close, 'back': self.close, 'green': self.TelnetStartStop})
-		self.onLayoutFinish.append(self.updateService)
+		self.my_telnet_run = False
+		self['actions'] = ActionMap(['WizardActions', 'ColorActions'], {'ok': self.close, 'back': self.close, 'green': self.TelnetStartStop, 'yellow': self.activateTelnet})
 
 	def createSummary(self):
 		return NetworkServicesSummary
 
 	def TelnetStartStop(self):
-		if not self.my_telnet_active:
-			if fileExists('/etc/inetd.conf'):
-				inme = open('/etc/inetd.conf', 'r')
-				out = open('/etc/inetd.tmp', 'w')
-				for line in inme.readlines():
-					if 'telnetd' in line:
-						line = line.replace('#', '')
-					out.write(line)
-				out.close()
-				inme.close()
-			if fileExists('/etc/inetd.tmp'):
-				move('/etc/inetd.tmp', '/etc/inetd.conf')
-				self.Console.ePopen('killall -HUP inetd')
-		elif self.my_telnet_active:
-			if fileExists('/etc/inetd.conf'):
-				inme = open('/etc/inetd.conf', 'r')
-				out = open('/etc/inetd.tmp', 'w')
-				for line in inme.readlines():
-					if 'telnetd' in line:
-						line = '#' + line
-					out.write(line)
-				out.close()
-				inme.close()
-			if fileExists('/etc/inetd.tmp'):
-				move('/etc/inetd.tmp', '/etc/inetd.conf')
-				self.Console.ePopen('killall -HUP inetd')
+		commands = []
+		if fileExists('/etc/init.d/telnetd.busybox'):
+			if self.my_telnet_run:
+				commands.append('/etc/init.d/telnetd.busybox stop')
+			else:
+				commands.append('/bin/su -l -c "/etc/init.d/telnetd.busybox start"')
+			self.Console.eBatch(commands, self.StartStopCallback, debug=True)
+
+	def StartStopCallback(self, result = None, retval = None, extra_args = None):
+		time.sleep(3)
 		self.updateService()
 
+	def activateTelnet(self):
+		commands = []
+		if fileExists('/etc/init.d/telnetd.busybox'):
+			if fileExists('/etc/rc2.d/S20telnetd.busybox'):
+				commands.append('update-rc.d -f telnetd.busybox remove')
+			else:
+				commands.append('update-rc.d -f telnetd.busybox defaults')
+		self.Console.eBatch(commands, self.StartStopCallback, debug=True)
+
 	def updateService(self):
+		import process
+		p = process.ProcessList()
+		telnet_process = str(p.named('telnetd')).strip('[]')
 		self['labrun'].hide()
 		self['labstop'].hide()
+		self['labactive'].setText(_("Disabled"))
 		self.my_telnet_active = False
-		if fileExists('/etc/inetd.conf'):
-			f = open('/etc/inetd.conf', 'r')
-			for line in f.readlines():
-				parts = line.strip().split()
-				if parts[0] == 'telnet':
-					self.my_telnet_active = True
-					continue
-			f.close()
-		if self.my_telnet_active:
+		self.my_telnet_run = False
+		if fileExists('/etc/rc2.d/S20telnetd.busybox'):
+			self['labactive'].setText(_("Enabled"))
+			self['labactive'].show()
+			self.my_telnet_active = True
+
+		if telnet_process:
+			self.my_telnet_run = True
+		if self.my_telnet_run:
 			self['labstop'].hide()
+			self['labactive'].show()
 			self['labrun'].show()
-			self['key_green'].setText(_("Disable"))
-			status_summary= self['lab2'].text + ' ' + self['labrun'].text
+			self['key_green'].setText(_("Stop"))
+			status_summary = self['lab2'].text + ' ' + self['labrun'].text
 		else:
-			self['labstop'].show()
 			self['labrun'].hide()
-			self['key_green'].setText(_("Enable"))
-			status_summary= self['lab2'].text + ' ' + self['labstop'].text
+			self['labstop'].show()
+			self['labactive'].show()
+			self['key_green'].setText(_("Start"))
+			status_summary = self['lab2'].text + ' ' + self['labstop'].text
 		title = _("Telnet Setup")
-		autostartstatus_summary = ""
+		autostartstatus_summary = self['lab1'].text + ' ' + self['labactive'].text
 
 		for cb in self.onChangedEntry:
 			cb(title, status_summary, autostartstatus_summary)

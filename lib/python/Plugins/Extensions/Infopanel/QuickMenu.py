@@ -1,5 +1,5 @@
 
-from enigma import eListboxPythonMultiContent, gFont, eEnv
+from enigma import eListboxPythonMultiContent, gFont, eEnv, getDesktop, pNavigation
 from boxbranding import getMachineBrand, getMachineName, getBoxType, getBrandOEM
 from Components.ActionMap import ActionMap
 from Components.Label import Label
@@ -12,6 +12,7 @@ from Components.NimManager import nimmanager
 from Components.SystemInfo import SystemInfo
 
 from Screens.Screen import Screen
+from Screens.ParentalControlSetup import ProtectedScreen
 from Screens.NetworkSetup import *
 from Screens.About import About
 from Screens.PluginBrowser import PluginDownloadBrowser, PluginFilter, PluginBrowser
@@ -20,7 +21,7 @@ from Screens.Satconfig import NimSelection
 from Screens.ScanSetup import ScanSimple, ScanSetup
 from Screens.Setup import Setup, getSetupTitle
 from Screens.HarddiskSetup import HarddiskSelection, HarddiskFsckSelection, HarddiskConvertExt4Selection
-from Screens.SkinSelector import LcdSkinSelector
+from Screens.SkinSelector import LcdSkinSelector, SkinSelector
 from Screens.VideoMode import VideoSetup, AudioSetup
 
 from Plugins.Plugin import PluginDescriptor
@@ -102,7 +103,7 @@ def Check_Softcam():
 			break;
 	return found
 
-class QuickMenu(Screen):
+class QuickMenu(Screen, ProtectedScreen):
 	skin = """
 		<screen name="QuickMenu" position="center,center" size="1180,600" backgroundColor="black" flags="wfBorder">
 		<widget name="list" position="21,32" size="370,400" backgroundColor="black" itemHeight="50" transparent="1" />
@@ -122,7 +123,10 @@ class QuickMenu(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
+		if config.ParentalControl.configured.value:
+			ProtectedScreen.__init__(self)
 		Screen.setTitle(self, _("Quick Launch Menu"))
+		ProtectedScreen.__init__(self)
 
 		self["key_red"] = Label(_("Exit"))
 		self["key_green"] = Label(_("System Info"))
@@ -152,7 +156,6 @@ class QuickMenu(Screen):
 			"down": self.goDown,
 		}, -1)
 
-
 		self["ColorActions"] = HelpableActionMap(self, "ColorActions",
 			{
 			"red": self.keyred,
@@ -165,6 +168,9 @@ class QuickMenu(Screen):
 		self.selectionChanged()
 		self.onLayoutFinish.append(self.layoutFinished)
 
+	def isProtected(self):
+		return config.ParentalControl.setuppinactive.value and not config.ParentalControl.config_sections.main_menu.value and config.ParentalControl.config_sections.quickmenu.value
+
 	def createSummary(self):
 		pass
 
@@ -175,7 +181,7 @@ class QuickMenu(Screen):
 		if self.selectedList == self["list"]:
 			item = self["list"].getCurrent()
 			if item:
-				self["description"].setText(_(item[4]))
+				self["description"].text = item[4][7]
 				self["summary_description"].text = item[0]
 				self.okList()
 
@@ -183,7 +189,7 @@ class QuickMenu(Screen):
 		if self.selectedList == self["sublist"]:
 			item = self["sublist"].getCurrent()
 			if item:
-				self["description"].setText(_(item[3]))
+				self["description"].text = item[3][7]
 				self["summary_description"].text = item[0]
 
 	def goLeft(self):
@@ -245,6 +251,7 @@ class QuickMenu(Screen):
 			self.sublist.append(QuickSubMenuEntryComponent("Display Settings",_("Display Setup"),_("Setup your display")))
 		if SystemInfo["LCDSKINSetup"]:
 			self.sublist.append(QuickSubMenuEntryComponent("LCD Skin Setup",_("Skin Setup"),_("Setup your LCD")))
+		self.sublist.append(QuickSubMenuEntryComponent("Skin Setup",_("Skin Setup"),_("Setup your Skin")))
 		self.sublist.append(QuickSubMenuEntryComponent("Channel selection",_("Channel selection configuration"),_("Setup your Channel selection configuration")))
 		self.sublist.append(QuickSubMenuEntryComponent("Recording settings",_("Recording Setup"),_("Setup your recording config")))
 		self.sublist.append(QuickSubMenuEntryComponent("EPG settings",_("EPG Setup"),_("Setup your EPG config")))
@@ -324,12 +331,15 @@ class QuickMenu(Screen):
 	def Qsoftware(self):
 		self.sublist = []
 		self.sublist.append(QuickSubMenuEntryComponent("Software Update",_("Online software update"),_("Check/Install online updates (you must have a working internet connection)")))
-		if not getBoxType().startswith('az') and not getBoxType().startswith('dm') and not getBrandOEM().startswith('cube'):
+		if not getBoxType().startswith('az') and not getBoxType().startswith('dm') and not getBrandOEM().startswith('cube') and not getBoxType().startswith('vusolo4k'):
 			self.sublist.append(QuickSubMenuEntryComponent("Flash Online",_("Flash Online a new image"),_("Flash on the fly your your Receiver software.")))
-		self.sublist.append(QuickSubMenuEntryComponent("Complete Backup",_("Backup your current image"),_("Backup your current image to HDD or USB. This will make a 1:1 copy of your box")))
+		if not getBoxType().startswith('az') and not getBrandOEM().startswith('cube') and not getBrandOEM().startswith('wetek'):
+			self.sublist.append(QuickSubMenuEntryComponent("Complete Backup",_("Backup your current image"),_("Backup your current image to HDD or USB. This will make a 1:1 copy of your box")))
 		self.sublist.append(QuickSubMenuEntryComponent("Backup Settings",_("Backup your current settings"),_("Backup your current settings. This includes E2-setup, channels, network and all selected files")))
 		self.sublist.append(QuickSubMenuEntryComponent("Restore Settings",_("Restore settings from a backup"),_("Restore your settings back from a backup. After restore the box will restart to activated the new settings")))
-		self.sublist.append(QuickSubMenuEntryComponent("Select Backup files",_("Choose the files to backup"),_("Here you can select which files should be added to backupfile. (default: E2-setup, channels, network")))
+		self.sublist.append(QuickSubMenuEntryComponent("Show default backup files",_("Show files backed up by default"),_("Here you can browse (but not modify) the files that are added to the backupfile by default (E2-setup, channels, network).")))
+		self.sublist.append(QuickSubMenuEntryComponent("Select additional backup files",_("Select additional files to backup"),_("Here you can specify additional files that should be added to the backup file.")))
+		self.sublist.append(QuickSubMenuEntryComponent("Select excluded backup files",_("Select files to exclude from backup"),_("Here you can select which files should be excluded from the backup.")))
 		self.sublist.append(QuickSubMenuEntryComponent("Software Manager Setup",_("Manage your online update files"),_("Here you can select which files should be updated with a online update")))
 		self["sublist"].l.setList(self.sublist)
 
@@ -448,6 +458,8 @@ class QuickMenu(Screen):
 			self.openSetup("display")
 		elif item[0] == _("LCD Skin Setup"):
 			self.session.open(LcdSkinSelector)
+		elif item[0] == _("Skin Setup"):
+			self.session.open(SkinSelector)	
 		elif item[0] == _("OSD settings"):
 			self.openSetup("userinterface")
 		elif item[0] == _("Channel selection"):
@@ -513,11 +525,15 @@ class QuickMenu(Screen):
 			self.backupfile = getBackupFilename()
 			self.fullbackupfilename = self.backuppath + "/" + self.backupfile
 			if os_path.exists(self.fullbackupfilename):
-				self.session.openWithCallback(self.startRestore, MessageBox, _("Are you sure you want to restore your %s %s backup?\nSTB will restart after the restore") % (getMachineBrand(), getMachineName()))
+				self.session.openWithCallback(self.startRestore, MessageBox, _("Are you sure you want to restore your %s %s backup?\nSTB will restart after the restore") % (getMachineBrand(), getMachineName()),default = False)
 			else:
 				self.session.open(MessageBox, _("Sorry no backups found!"), MessageBox.TYPE_INFO, timeout = 10)
-		elif item[0] == _("Select Backup files"):
-			self.session.openWithCallback(self.backupfiles_choosen,BackupSelection)
+		elif item[0] == _("Show default backup files"):
+			self.session.open(BackupSelection,title=_("Default files/folders to backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs_default,readOnly=True)
+		elif item[0] == _("Select additional backup files"):
+			self.session.open(BackupSelection,title=_("Additional files/folders to backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs,readOnly=False)
+		elif item[0] == _("Select excluded backup files"):
+			self.session.open(BackupSelection,title=_("Files/folders to exclude from backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs_exclude,readOnly=False)
 		elif item[0] == _("Software Manager Setup"):
 			self.session.open(SoftwareManagerSetup)
 ######## Select PluginDownloadBrowser Menu ##############################
@@ -575,7 +591,7 @@ class QuickMenu(Screen):
 		if len(nimList) == 0:
 			self.session.open(MessageBox, _("No positioner capable frontend found."), MessageBox.TYPE_ERROR)
 		else:
-			if len(NavigationInstance.instance.getRecordings()) > 0:
+			if len(NavigationInstance.instance.getRecordings(False,pNavigation.isAnyRecording)) > 0:
 				self.session.open(MessageBox, _("A recording is currently running. Please stop the recording before trying to configure the positioner."), MessageBox.TYPE_ERROR)
 			else:
 				usableNims = []
@@ -601,17 +617,12 @@ class QuickMenu(Screen):
 		if len(nimList) == 0:
 			self.session.open(MessageBox, _("No satellite frontend found!!"), MessageBox.TYPE_ERROR)
 		else:
-			if len(NavigationInstance.instance.getRecordings()) > 0:
+			if len(NavigationInstance.instance.getRecordings(False,pNavigation.isAnyRecording)) > 0:
 				self.session.open(MessageBox, _("A recording is currently running. Please stop the recording before trying to start the satfinder."), MessageBox.TYPE_ERROR)
 			else:
 				self.session.open(Satfinder)
 		
 ######## SOFTWARE MANAGER TOOLS #######################
-	def backupfiles_choosen(self, ret):
-		config.plugins.configurationbackup.backupdirs.save()
-		config.plugins.configurationbackup.save()
-		config.save()
-
 	def backupDone(self,retval = None):
 		if retval is True:
 			self.session.open(MessageBox, _("Backup done."), MessageBox.TYPE_INFO, timeout = 10)
@@ -631,35 +642,66 @@ def QuickMenuEntryComponent(name, description, long_description = None, width=54
 	if png is None:
 		png = LoadPixmap("/usr/lib/enigma2/python/Plugins/Extensions/Infopanel/icons/default.png")
 
-	return [
-		_(name),
-		MultiContentEntryText(pos=(60, 5), size=(width-60, 25), font=0, text = _(name)),
-		MultiContentEntryText(pos=(60, 26), size=(width-60, 17), font=1, text = _(description)),
-		MultiContentEntryPixmapAlphaBlend(pos=(10, 5), size=(40, 40), png = png),
-		_(long_description),
-	]
+	screenwidth = getDesktop(0).size().width()
+	if screenwidth and screenwidth == 1920:
+		return [
+			_(name),
+			MultiContentEntryText(pos=(90, 5), size=(width-90, 38), font=0, text = _(name)),
+			MultiContentEntryText(pos=(90, 38), size=(width-90, 30), font=1, text = _(description)),
+			MultiContentEntryPixmapAlphaBlend(pos=(15, 8), size=(60, 60), png = png),
+			MultiContentEntryText(pos=(0, 0), size=(0, 0), font=0, text = _(long_description))
+		]
+	else:
+		return [
+			_(name),
+			MultiContentEntryText(pos=(60, 3), size=(width-60, 25), font=0, text = _(name)),
+			MultiContentEntryText(pos=(60, 25), size=(width-60, 20), font=1, text = _(description)),
+			MultiContentEntryPixmapAlphaBlend(pos=(10, 5), size=(40, 40), png = png),
+			MultiContentEntryText(pos=(0, 0), size=(0, 0), font=0, text = _(long_description))
+		]
 
 def QuickSubMenuEntryComponent(name, description, long_description = None, width=540):
-	return [
-		_(name),
-		MultiContentEntryText(pos=(10, 5), size=(width-10, 25), font=0, text = _(name)),
-		MultiContentEntryText(pos=(10, 26), size=(width-10, 17), font=1, text = _(description)),
-		_(long_description),
-	]
+	screenwidth = getDesktop(0).size().width()
+	if screenwidth and screenwidth == 1920:
+		return [
+			_(name),
+			MultiContentEntryText(pos=(15, 5), size=(width-15, 38), font=0, text = _(name)),
+			MultiContentEntryText(pos=(15, 38), size=(width-15, 30), font=1, text = _(description)),
+			MultiContentEntryText(pos=(0, 0), size=(0, 0), font=0, text = _(long_description))
+		]
+	else:
+		return [
+			_(name),
+			MultiContentEntryText(pos=(10, 3), size=(width-10, 25), font=0, text = _(name)),
+			MultiContentEntryText(pos=(10, 25), size=(width-10, 20), font=1, text = _(description)),
+			MultiContentEntryText(pos=(0, 0), size=(0, 0), font=0, text = _(long_description))
+		]
 
 class QuickMenuList(MenuList):
 	def __init__(self, list, enableWrapAround=True):
 		MenuList.__init__(self, list, enableWrapAround, eListboxPythonMultiContent)
-		self.l.setFont(0, gFont("Regular", 20))
-		self.l.setFont(1, gFont("Regular", 14))
-		self.l.setItemHeight(50)
+		screenwidth = getDesktop(0).size().width()
+		if screenwidth and screenwidth == 1920:
+			self.l.setFont(0, gFont("Regular", 30))
+			self.l.setFont(1, gFont("Regular", 24))
+			self.l.setItemHeight(75)
+		else:
+			self.l.setFont(0, gFont("Regular", 20))
+			self.l.setFont(1, gFont("Regular", 16))
+			self.l.setItemHeight(50)
 
 class QuickMenuSubList(MenuList):
 	def __init__(self, sublist, enableWrapAround=True):
 		MenuList.__init__(self, sublist, enableWrapAround, eListboxPythonMultiContent)
-		self.l.setFont(0, gFont("Regular", 20))
-		self.l.setFont(1, gFont("Regular", 14))
-		self.l.setItemHeight(50)
+		screenwidth = getDesktop(0).size().width()
+		if screenwidth and screenwidth == 1920:
+			self.l.setFont(0, gFont("Regular", 30))
+			self.l.setFont(1, gFont("Regular", 24))
+			self.l.setItemHeight(75)
+		else:
+			self.l.setFont(0, gFont("Regular", 20))
+			self.l.setFont(1, gFont("Regular", 16))
+			self.l.setItemHeight(50)
 
 class QuickMenuDevices(Screen):
 	skin = """

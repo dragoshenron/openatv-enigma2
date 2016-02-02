@@ -8,6 +8,7 @@ from Screens.Standby import *
 from Screens.MessageBox import MessageBox
 from Components.ActionMap import ActionMap, NumberActionMap, HelpableActionMap 
 from Screens.Screen import Screen
+from Screens.ParentalControlSetup import ProtectedScreen
 from Screens.ChoiceBox import ChoiceBox
 from Tools.BoundFunction import boundFunction
 from Tools.LoadPixmap import LoadPixmap
@@ -26,7 +27,6 @@ from Components.ActionMap import ActionMap
 from Components.SystemInfo import SystemInfo
 from Screens.VirtualKeyBoard import VirtualKeyBoard
 from Components.MultiContent import MultiContentEntryText, MultiContentEntryPixmapAlphaBlend
-from __init__ import _
 from boxbranding import getBoxType, getMachineName, getMachineBrand, getBrandOEM
 
 import os
@@ -88,13 +88,6 @@ if os.path.isfile("/usr/lib/enigma2/python/Plugins/Extensions/MultiQuickButton/p
 		from Plugins.Extensions.MultiQuickButton.plugin import *
 	except:
 		pass
-if os.path.isfile("/usr/lib/enigma2/python/Plugins/Extensions/SundtekControlCenter/plugin.pyo") is True:
-	try:
-		from Plugins.Extensions.SundtekControlCenter.SundtekControlCenter import *
-	except:
-		pass
-else:
-	from Plugins.Extensions.Infopanel.sundtek import *
 
 from Plugins.Extensions.Infopanel.CronManager import *
 from Plugins.Extensions.Infopanel.ScriptRunner import *
@@ -102,10 +95,10 @@ from Plugins.Extensions.Infopanel.MountManager import *
 from Plugins.Extensions.Infopanel.SoftcamPanel import *
 from Plugins.Extensions.Infopanel.CamStart import *
 from Plugins.Extensions.Infopanel.CamCheck import *
-#from Plugins.Extensions.Infopanel.sundtek import *
 from Plugins.Extensions.Infopanel.SwapManager import Swap, SwapAutostart
 from Plugins.Extensions.Infopanel.SoftwarePanel import SoftwarePanel
 from Plugins.SystemPlugins.SoftwareManager.BackupRestore import BackupScreen, RestoreScreen, BackupSelection, getBackupPath, getBackupFilename
+from Plugins.SystemPlugins.SoftwareManager.BackupRestore import InitConfig as BackupRestore_InitConfig
 
 SystemInfo["SoftCam"] = Check_Softcam()
 
@@ -251,14 +244,25 @@ INFO_SKIN2 =  """<screen name="PANEL-Info2"  position="center,center" size="530,
 class PanelList(MenuList):
 	def __init__(self, list, font0 = 24, font1 = 16, itemHeight = 50, enableWrapAround = True):
 		MenuList.__init__(self, list, enableWrapAround, eListboxPythonMultiContent)
-		self.l.setFont(0, gFont("Regular", font0))
-		self.l.setFont(1, gFont("Regular", font1))
-		self.l.setItemHeight(itemHeight)
+		screenwidth = getDesktop(0).size().width()
+		if screenwidth and screenwidth == 1920:
+			self.l.setFont(0, gFont("Regular", int(font0 * 1.5)))
+			self.l.setFont(1, gFont("Regular", int(font1 * 1.5)))
+			self.l.setItemHeight(int(itemHeight*1.5))
+		else:
+			self.l.setFont(0, gFont("Regular", font0))
+			self.l.setFont(1, gFont("Regular", font1))
+			self.l.setItemHeight(itemHeight)
 
 def MenuEntryItem(entry):
 	res = [entry]
-	res.append(MultiContentEntryPixmapAlphaBlend(pos=(10, 5), size=(40, 40), png=entry[0]))  # png vorn
-	res.append(MultiContentEntryText(pos=(60, 10), size=(440, 40), font=0, text=entry[1]))  # menupunkt
+	screenwidth = getDesktop(0).size().width()
+	if screenwidth and screenwidth == 1920:
+		res.append(MultiContentEntryPixmapAlphaBlend(pos=(15, 8), size=(60, 60), png=entry[0]))  # png vorn
+		res.append(MultiContentEntryText(pos=(90, 15), size=(660, 60), font=0, text=entry[1]))  # menupunkt
+	else:
+		res.append(MultiContentEntryPixmapAlphaBlend(pos=(10, 5), size=(40, 40), png=entry[0]))  # png vorn
+		res.append(MultiContentEntryText(pos=(60, 10), size=(440, 40), font=0, text=entry[1]))  # menupunkt
 	return res
 ###################  Max Test ###################
 
@@ -278,13 +282,17 @@ def InfoEntryComponent(file):
 	res = (png)
 	return res
 
-class Infopanel(Screen, InfoBarPiP):
+class Infopanel(Screen, InfoBarPiP, ProtectedScreen):
 	servicelist = None
 	def __init__(self, session, services = None):
 		Screen.__init__(self, session)
+		config.plugins.configurationbackup=BackupRestore_InitConfig()
+		if config.ParentalControl.configured.value:
+			ProtectedScreen.__init__(self)
 		self.session = session
 		self.skin = MENU_SKIN
 		self.onShown.append(self.setWindowTitle)
+		ProtectedScreen.__init__(self)
 		self.service = None
 		global pluginlist
 		global videomode
@@ -334,6 +342,9 @@ class Infopanel(Screen, InfoBarPiP):
 		self["Mlist"].l.setList(self.Mlist)
 		menu = 0
 		self["Mlist"].onSelectionChanged.append(self.selectionChanged)
+
+	def isProtected(self):
+		return config.ParentalControl.setuppinactive.value and not config.ParentalControl.config_sections.main_menu.value and config.ParentalControl.config_sections.infopanel.value
 
 	def createSummary(self):
 		pass
@@ -470,17 +481,19 @@ class Infopanel(Screen, InfoBarPiP):
 			self.backupfile = getBackupFilename()
 			self.fullbackupfilename = self.backuppath + "/" + self.backupfile
 			if os_path.exists(self.fullbackupfilename):
-				self.session.openWithCallback(self.startRestore, MessageBox, _("Are you sure you want to restore your STB backup?\nSTB will restart after the restore"))
+				self.session.openWithCallback(self.startRestore, MessageBox, _("Are you sure you want to restore your STB backup?\nSTB will restart after the restore"), default = False)
 			else:
 				self.session.open(MessageBox, _("Sorry no backups found!"), MessageBox.TYPE_INFO, timeout = 10)
 		elif menu == "backup-files":
-			self.session.openWithCallback(self.backupfiles_choosen,BackupSelection)
+			self.session.open(BackupSelection,title=_("Default files/folders to backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs_default,readOnly=True)
+		elif menu == "backup-files-additional":
+			self.session.open(BackupSelection,title=_("Additional files/folders to backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs,readOnly=False)
+		elif menu == "backup-files-excluded":
+			self.session.open(BackupSelection,title=_("Files/folders to exclude from backup"),configBackupDirs=config.plugins.configurationbackup.backupdirs_exclude,readOnly=False)
 		elif menu == "MultiQuickButton":
 			self.session.open(MultiQuickButton)
 		elif menu == "MountManager":
 			self.session.open(HddMount)
-		elif menu == "SundtekControlCenter":
-			self.session.open(SundtekControlCenter)
 		elif menu == "SwapManager":
 			self.session.open(Swap)
 		elif menu == "Softcam-Panel Setup":
@@ -502,7 +515,6 @@ class Infopanel(Screen, InfoBarPiP):
 		self.tlist.append(MenuEntryItem((InfoEntryComponent('CronManager'), _("CronManager"), 'CronManager')))
 		self.tlist.append(MenuEntryItem((InfoEntryComponent('JobManager'), _("JobManager"), 'JobManager')))
 		self.tlist.append(MenuEntryItem((InfoEntryComponent('SwapManager'), _("SwapManager"), 'SwapManager')))
-		self.tlist.append(MenuEntryItem((InfoEntryComponent('SundtekControlCenter'), _("SundtekControlCenter"), 'SundtekControlCenter')))
 		if os.path.isfile("/usr/lib/enigma2/python/Plugins/Extensions/MultiQuickButton/plugin.pyo") is True:
 			self.tlist.append(MenuEntryItem((InfoEntryComponent('MultiQuickButton'), _("MultiQuickButton"), 'MultiQuickButton')))
 		self["Mlist"].moveToIndex(0)
@@ -568,15 +580,11 @@ class Infopanel(Screen, InfoBarPiP):
 		self.tlist.append(MenuEntryItem((InfoEntryComponent ("SoftwareManager" ), _("Software update"), ("software-update"))))
 		self.tlist.append(MenuEntryItem((InfoEntryComponent ("BackupSettings" ), _("Backup Settings"), ("backup-settings"))))
 		self.tlist.append(MenuEntryItem((InfoEntryComponent ("RestoreSettings" ), _("Restore Settings"), ("restore-settings"))))
-		self.tlist.append(MenuEntryItem((InfoEntryComponent ("BackupFiles" ), _("Choose backup files"), ("backup-files"))))
+		self.tlist.append(MenuEntryItem((InfoEntryComponent ("BackupFiles" ), _("Show default backup files"), ("backup-files"))))
+		self.tlist.append(MenuEntryItem((InfoEntryComponent ("BackupFilesAdditional" ), _("Select additional backup files"), ("backup-files-additional"))))
+		self.tlist.append(MenuEntryItem((InfoEntryComponent ("BackupFilesExcluded" ), _("Select excluded backup files"), ("backup-files-excluded"))))
 		self["Mlist"].moveToIndex(0)
 		self["Mlist"].l.setList(self.tlist)
-
-	def backupfiles_choosen(self, ret):
-		#self.backupdirs = ' '.join( config.plugins.configurationbackup.backupdirs.value )
-		config.plugins.configurationbackup.backupdirs.save()
-		config.plugins.configurationbackup.save()
-		config.save()
 
 	def backupDone(self,retval = None):
 		if retval is True:

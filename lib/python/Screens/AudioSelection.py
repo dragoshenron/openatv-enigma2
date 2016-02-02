@@ -1,19 +1,23 @@
-from enigma import iPlayableService, eTimer
-
 from Screen import Screen
 from Screens.Setup import getConfigMenuItem, Setup
+from Screens.InputBox import PinInput
+from Screens.MessageBox import MessageBox
 from Components.ServiceEventTracker import ServiceEventTracker
 from Components.ActionMap import NumberActionMap
 from Components.ConfigList import ConfigListScreen
 from Components.config import config, ConfigSubsection, getConfigListEntry, ConfigNothing, ConfigSelection, ConfigOnOff
 from Components.Label import Label
+from Components.Pixmap import Pixmap
 from Components.Sources.StaticText import StaticText
 from Components.Sources.List import List
 from Components.Sources.Boolean import Boolean
 from Components.SystemInfo import SystemInfo
 from Components.VolumeControl import VolumeControl
-from Tools.ISO639 import LanguageCodes
 
+from enigma import iPlayableService, eTimer, eSize
+
+from Tools.ISO639 import LanguageCodes
+from Tools.BoundFunction import boundFunction
 FOCUS_CONFIG, FOCUS_STREAMS = range(2)
 [PAGE_AUDIO, PAGE_SUBTITLES] = ["audio", "subtitles"]
 
@@ -27,7 +31,12 @@ class AudioSelection(Screen, ConfigListScreen):
 		self["key_green"] = Boolean(False)
 		self["key_yellow"] = Boolean(True)
 		self["key_blue"] = Boolean(False)
+		self["key_left"] = Pixmap()
+		self["key_right"] = Pixmap()
+		self["switchdescription"] = Label(_("Switch between Audio-, Subtitlepage"))
 		self["summary_description"] = StaticText("")
+
+		self.protectContextMenu = True
 
 		ConfigListScreen.__init__(self, [])
 		self.infobar = infobar or self.session.infobar
@@ -349,7 +358,7 @@ class AudioSelection(Screen, ConfigListScreen):
 		if self.focus == FOCUS_CONFIG:
 			ConfigListScreen.keyLeft(self)
 		elif self.focus == FOCUS_STREAMS:
-			self["streams"].setIndex(0)
+			self.keyAudioSubtitle()
 
 	def keyRight(self, config = False):
 		if config or self.focus == FOCUS_CONFIG:
@@ -360,8 +369,8 @@ class AudioSelection(Screen, ConfigListScreen):
 			else:
 				ConfigListScreen.keyRight(self)
 
-		if self.focus == FOCUS_STREAMS and self["streams"].count() and config == False:
-			self["streams"].setIndex(self["streams"].count()-1)
+		if self.focus == FOCUS_STREAMS and config == False:
+			self.keyAudioSubtitle()
 
 	def keyRed(self):
 		if self["key_red"].getBoolean():
@@ -402,6 +411,9 @@ class AudioSelection(Screen, ConfigListScreen):
 			self["config"].instance.moveSelection(self["config"].instance.moveUp)
 		elif self.focus == FOCUS_STREAMS:
 			if self["streams"].getIndex() == 0:
+				self["switchdescription"].hide()
+				self["key_left"].hide()
+				self["key_right"].hide()
 				self["config"].instance.setSelectionEnable(True)
 				self["streams"].style = "notselected"
 				self["config"].setCurrentIndex(len(self["config"].getList())-1)
@@ -414,6 +426,9 @@ class AudioSelection(Screen, ConfigListScreen):
 			if self["config"].getCurrentIndex() < len(self["config"].getList())-1:
 				self["config"].instance.moveSelection(self["config"].instance.moveDown)
 			else:
+				self["switchdescription"].show()
+				self["key_left"].show()
+				self["key_right"].show()
 				self["config"].instance.setSelectionEnable(False)
 				self["streams"].style = "default"
 				self.focus = FOCUS_STREAMS
@@ -454,7 +469,17 @@ class AudioSelection(Screen, ConfigListScreen):
 			self.keyRight()
 
 	def openAutoLanguageSetup(self):
-		self.session.open(Setup, "autolanguagesetup")
+		if self.protectContextMenu and config.ParentalControl.setuppinactive.value and config.ParentalControl.config_sections.context_menus.value:
+			self.session.openWithCallback(self.protectResult, PinInput, pinList=[x.value for x in config.ParentalControl.servicepin], triesEntry=config.ParentalControl.retries.servicepin, title=_("Please enter the correct pin code"), windowTitle=_("Enter pin code"))
+		else:
+			self.protectResult(True)
+
+	def protectResult(self, answer):
+		if answer:
+			self.session.open(Setup, "autolanguagesetup")
+			self.protectContextMenu = False
+		elif answer is not None:
+			self.session.openWithCallback(self.close, MessageBox, _("The pin code you entered is wrong."), MessageBox.TYPE_ERROR)
 
 	def cancel(self):
 		self.close(0)
@@ -501,6 +526,8 @@ class QuickSubtitlesConfigMenu(ConfigListScreen, Screen):
 			menu = [
 				getConfigMenuItem("config.subtitles.pango_subtitles_delay"),
 				getConfigMenuItem("config.subtitles.pango_subtitle_colors"),
+				getConfigMenuItem("config.subtitles.pango_subtitle_fontswitch"),
+				getConfigMenuItem("config.subtitles.colourise_dialogs"),
 				getConfigMenuItem("config.subtitles.subtitle_fontsize"),
 				getConfigMenuItem("config.subtitles.subtitle_position"),
 				getConfigMenuItem("config.subtitles.subtitle_alignment"),
@@ -518,6 +545,12 @@ class QuickSubtitlesConfigMenu(ConfigListScreen, Screen):
 			"cancel": self.cancel,
 			"ok": self.ok,
 		},-2)
+
+		self.onLayoutFinish.append(self.layoutFinished)
+
+	def layoutFinished(self):
+		if not self["videofps"].text:
+			self.instance.resize(eSize(self.instance.size().width(), self["config"].l.getItemSize().height()*len(self["config"].getList()) + 10))
 
 	def changedEntry(self):
 		if self["config"].getCurrent() in [getConfigMenuItem("config.subtitles.pango_subtitles_delay"),getConfigMenuItem("config.subtitles.pango_subtitles_fps")]:

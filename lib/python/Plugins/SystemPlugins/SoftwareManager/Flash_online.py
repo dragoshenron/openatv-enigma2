@@ -36,12 +36,12 @@ if ImageVersion3 == '':
 	feedurl_atv = 'http://images.mynonpublic.com/openatv/%s' %ImageVersion
 else:
 	feedurl_atv = 'http://images2.mynonpublic.com/openatv/%s' %ImageVersion3
-if ImageVersion == '4.1' or ImageVersion == '4.0' or ImageVersion == '3.0' or ImageVersion == '4.3':
+if ImageVersion == '4.1' or ImageVersion == '4.0' or ImageVersion == '3.0' or ImageVersion == '4.3' or ImageVersion == '5.1':
 	ImageVersion2= '4.2'
 else:
-	ImageVersion2= '4.1'
+	ImageVersion2= '5.1'
 feedurl_atv2= 'http://images.mynonpublic.com/openatv/%s' %ImageVersion2
-feedurl_om = 'http://image.openmips.com/4.2'
+feedurl_om = 'http://image.openmips.com/4.3'
 imagePath = '/media/hdd/images'
 flashPath = '/media/hdd/images/flash'
 flashTmp = '/media/hdd/images/tmp'
@@ -240,7 +240,7 @@ class doFlashImage(Screen):
 			box = "miraclebox-twin"
 		elif box == "xp1000" and machinename.lower() == "sf8 hd":
 			box = "sf8"
-		elif box.startswith('et') and not box in ('et8000', 'et10000'):
+		elif box.startswith('et') and not box in ('et8000', 'et8500', 'et8500s', 'et10000'):
 			box = box[0:3] + 'x00'
 		elif box == 'odinm9' and self.feed == "atv":
 			box = 'maram9'
@@ -623,7 +623,7 @@ class ImageDownloadTask(Task):
 		self.aborted = True
 
 	def download_progress(self, recvbytes, totalbytes):
-		if ( recvbytes - self.last_recvbytes  ) > 10000: # anti-flicker
+		if ( recvbytes - self.last_recvbytes  ) > 100000: # anti-flicker
 			self.progress = int(100*(float(recvbytes)/float(totalbytes)))
 			self.name = _("Downloading") + ' ' + "%d of %d kBytes" % (recvbytes/1024, totalbytes/1024)
 			self.last_recvbytes = recvbytes

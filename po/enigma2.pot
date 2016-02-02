@@ -17,6 +17,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+#: MessageBox.py:24
+msgid "Question"
+msgstr ""
+
+#: MessageBox.py:26
+msgid "Information"
+msgstr ""
+
+#: MessageBox.py:28
+msgid "Warning"
+msgstr ""
+
+#: MessageBox.py:30
+msgid "Error"
+msgstr ""
+
+#: VideoMode.py:448
+msgid "Video content: %ix%i%s %iHz"
+msgstr ""
+
+#: VideoMode.py:608
+msgid "Video mode: %s not available"
+msgstr ""
+
+#: VideoMode.py:625
+msgid "Video mode: 1080p also not available"
+msgstr ""
+
+#: VideoMode.py:628
+#: VideoMode.py:585
+msgid "Video mode: %s"
+msgstr ""
+
 #: PowerTimer.py:181
 #: PowerTimer.py:186
 #: PowerTimer.py:301
@@ -14161,7 +14194,7 @@ msgstr ""
 
 #: lib/python/Screens/NetworkSetup.py:2437
 #: lib/python/Screens/NetworkSetup.py:2597
-msgid "Samba Setup"
+msgid "CIFS/Samba Setup"
 msgstr ""
 
 #: lib/python/Screens/NetworkSetup.py:2481
@@ -16672,4 +16705,10 @@ msgstr ""
 
 #: skin.py:18
 msgid "Clock"
+msgstr ""
+
+msgid "Usage & GUI"
+msgstr ""
+
+msgid "Recordings & Timeshift"
 msgstr ""

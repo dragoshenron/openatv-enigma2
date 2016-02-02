@@ -26,19 +26,22 @@ def getAboutText():
 		AboutText += _("Chipset:\t%s") % about.getChipSetString() + "\n"
 
 	cpuMHz = ""
-	if path.exists('/proc/cpuinfo'):
-		f = open('/proc/cpuinfo', 'r')
-		temp = f.readlines()
-		f.close()
-		try:
-			for lines in temp:
-				lisp = lines.split(': ')
-				if lisp[0].startswith('cpu MHz'):
-					#cpuMHz = "   (" +  lisp[1].replace('\n', '') + " MHz)"
-					cpuMHz = "   (" +  str(int(float(lisp[1].replace('\n', '')))) + " MHz)"
-					break
-		except:
-			pass
+	if getBoxType() in ('vusolo4k'):
+		cpuMHz = "   (1,5 GHz)"
+	else:
+		if path.exists('/proc/cpuinfo'):
+			f = open('/proc/cpuinfo', 'r')
+			temp = f.readlines()
+			f.close()
+			try:
+				for lines in temp:
+					lisp = lines.split(': ')
+					if lisp[0].startswith('cpu MHz'):
+						#cpuMHz = "   (" +  lisp[1].replace('\n', '') + " MHz)"
+						cpuMHz = "   (" +  str(int(float(lisp[1].replace('\n', '')))) + " MHz)"
+						break
+			except:
+				pass
 
 	AboutText += _("CPU:\t%s") % about.getCPUString() + cpuMHz + "\n"
 	AboutText += _("Cores:\t%s") % about.getCpuCoresString() + "\n"
@@ -54,9 +57,11 @@ def getAboutText():
 	driversdate = '-'.join((year, month, day))
 	AboutText += _("Drivers:\t%s") % driversdate + "\n"
 
-	AboutText += _("Last update:\t%s") % getEnigmaVersionString() + "\n\n"
-
 	AboutText += _("GStreamer:\t%s") % about.getGStreamerVersionString() + "\n"
+	AboutText += _("Python:\t%s") % about.getPythonVersionString() + "\n"
+
+	AboutText += _("Installed:\t%s") % about.getFlashDateString() + "\n"
+	AboutText += _("Last update:\t%s") % getEnigmaVersionString() + "\n"
 
 	fp_version = getFPVersion()
 	if fp_version is None:
@@ -76,7 +81,7 @@ def getAboutText():
 		f.close()
 	if tempinfo and int(tempinfo.replace('\n', '')) > 0:
 		mark = str('\xc2\xb0')
-		AboutText += _("System temperature:\t%s") % tempinfo.replace('\n', '') + mark + "C\n"
+		AboutText += _("System temperature:\t%s") % tempinfo.replace('\n', '').replace(' ','') + mark + "C\n"
 
 	tempinfo = ""
 	if path.exists('/proc/stb/fp/temp_sensor_avs'):
@@ -85,7 +90,7 @@ def getAboutText():
 		f.close()
 	if tempinfo and int(tempinfo.replace('\n', '')) > 0:
 		mark = str('\xc2\xb0')
-		AboutText += _("Processor temperature:\t%s") % tempinfo.replace('\n', '') + mark + "C\n"
+		AboutText += _("Processor temperature:\t%s") % tempinfo.replace('\n', '').replace(' ','') + mark + "C\n"
 	AboutLcdText = AboutText.replace('\t', ' ')
 
 	return AboutText, AboutLcdText
@@ -619,6 +624,7 @@ class TranslationInfo(Screen):
 			infomap[type] = value
 		print infomap
 
+		self["key_red"] = Button(_("Cancel"))
 		self["TranslationInfo"] = StaticText(info)
 
 		translator_name = infomap.get("Language-Team", "none")

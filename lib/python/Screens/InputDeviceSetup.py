@@ -118,7 +118,7 @@ class InputDeviceSetup(Screen, ConfigListScreen):
 		self.inputDevice = device
 		iInputDevices.currentDevice = self.inputDevice
 		self.onChangedEntry = [ ]
-		self.setup_title = _("Input device setup")
+		self.setup_title = (_("Setup InputDevice"))
 		self.isStepSlider = None
 		self.enableEntry = None
 		self.repeatEntry = None
@@ -271,9 +271,9 @@ class RemoteControlType(Screen, ConfigListScreen):
 			("11", _("et9200/9500/6500")),
 			("13", _("et4000")),
 			("14", _("XP1000")),
-			("16", _("HD1100/et7x00")),
+			("16", _("HD1100/HD1200/HD1265/HD500C/et7x00/et8500")),
 			("17", _("XP3000")),
-			("18", _("F1/F3")),
+			("18", _("F1/F3/TRIPLEX")),
 			("19", _("HD2400"))
 			]
 
@@ -284,16 +284,20 @@ class RemoteControlType(Screen, ConfigListScreen):
 			("et6500", 11),
 			("et7x00",16),
 			("et8000", 9),
+			("et8500",16),
 			("et9000", 5),
 			("et9100", 5),
 			("et9200", 11),
 			("et9500", 11),
 			("et10000", 9),
 			("hd1100",16),
-
+			("hd1200",16),
+			("hd1265",16),
+			("hd500c",16),
 			("hd2400",19),
 			("formuler1",18),
 			("formuler3",18),
+			("triplex",18),
 			("xp1000", 14),
 			("xp3000", 17)
 			]

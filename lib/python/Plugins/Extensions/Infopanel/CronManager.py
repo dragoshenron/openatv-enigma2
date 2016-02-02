@@ -44,8 +44,8 @@ class CronManager(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		if not path.exists('/usr/scripts'):
-			mkdir('/usr/scripts', 0755)
+		if not path.exists('/usr/script'):
+			mkdir('/usr/script', 0755)
 		Screen.setTitle(self, _("Cron Manager"))
 		self['lab1'] = Label(_("Autostart:"))
 		self['labactive'] = Label(_(_("Active")))
@@ -287,11 +287,11 @@ class SetupCronConf(Screen, ConfigListScreen):
 
 	def createSetup(self):
 		predefinedlist = []
-		f = listdir('/usr/scripts')
+		f = listdir('/usr/script')
 		if f:
 			for line in f:
 				parts = line.split()
-				path = "/usr/scripts/"
+				path = "/usr/script/"
 				pkg = parts[0]
 				description = path + parts[0]
 				if pkg.find('.sh') >= 0:
@@ -341,7 +341,7 @@ class SetupCronConf(Screen, ConfigListScreen):
 	def checkentry(self):
 		msg = ''
 		if (config.infopanel.cronmanager_commandtype.value == 'predefined' and config.infopanel.cronmanager_predefined_command.value == '') or config.infopanel.cronmanager_commandtype.value == 'custom' and config.infopanel.cronmanager_user_command.value == '':
-			msg = 'You must set at least one Command'
+			msg = _("You must set at least one Command")
 		if msg:
 			self.session.open(MessageBox, msg, MessageBox.TYPE_ERROR)
 		else:
