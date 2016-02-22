@@ -1,5 +1,6 @@
 #include <lib/base/cfile.h>
 #include <lib/base/eerror.h>
+#include <lib/base/eerroroutput.h>
 #include <lib/base/elock.h>
 #include <cstdarg>
 #include <cstdio>
@@ -10,6 +11,8 @@
 
 #include <string>
 #include <ansidebug.h>
+
+extern ePtr<eErrorOutput> m_erroroutput;
 
 #ifdef MEMLEAK_CHECK
 AllocList *allocList;
@@ -189,7 +192,19 @@ void _eFatal(const char *file, int line, const char *function, const char* fmt, 
 	logOutput(lvlFatal, std::string(header) + std::string(ncbuf) + "\n");
 
 	if (!logOutputColors)
-		fprintf(stderr, "FATAL: %s%s\n", header , ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "FATAL: %s%s\n", header, ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "FATAL: %s%s\n", header, ncbuf);
+		}
 	else
 	{
 		snprintf(header, sizeof(header),	\
@@ -199,7 +214,17 @@ void _eFatal(const char *file, int line, const char *function, const char* fmt, 
 			ANSI_BGREEN	"%s "		/*color of functionname*/\
 			ANSI_BWHITE			/*color of debugmessage*/\
 			, inNoNewLine?"\n":"", timebuffer, file, line, function);
-		fprintf(stderr, "FATAL: %s%s\n"ANSI_RESET, header , buf);
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "FATAL: %s%s\n"ANSI_RESET, header , buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "FATAL: %s%s\n"ANSI_RESET, header , buf);
 	}
 	bsodFatal("enigma2");
 	inNoNewLine = false;
@@ -239,7 +264,19 @@ void _eDebug(const char *file, int line, const char *function, const char* fmt, 
 	if (logOutputConsole)
 	{
 		if (!logOutputColors)
-			fprintf(stderr, "%s%s\n", header, ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s\n", header, ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s\n", header, ncbuf);
+		}
 		else
 		{
 			snprintf(header, sizeof(header),	\
@@ -249,7 +286,17 @@ void _eDebug(const char *file, int line, const char *function, const char* fmt, 
 				ANSI_BGREEN	"%s "		/*color of functionname*/\
 				ANSI_BWHITE			/*color of debugmessage*/\
 				, inNoNewLine?"\n":"", is_alert?ANSI_BRED:is_warning?ANSI_BYELLOW:ANSI_WHITE, timebuffer, file, line, function);
-			fprintf(stderr, "%s%s\n"ANSI_RESET, header, buf);
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s\n"ANSI_RESET, header, buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s\n"ANSI_RESET, header, buf);
 		}
 	}
 	inNoNewLine = false;
@@ -288,7 +335,19 @@ void _eDebugNoNewLineStart(const char *file, int line, const char *function, con
 	if (logOutputConsole)
 	{
 		if (!logOutputColors)
-			fprintf(stderr, "%s%s", header, ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s", header, ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s", header, ncbuf);
+		}
 		else
 		{
 			snprintf(header, sizeof(header),	\
@@ -297,7 +356,17 @@ void _eDebugNoNewLineStart(const char *file, int line, const char *function, con
 				ANSI_BGREEN	"%s "		/*color of functionname*/\
 				ANSI_BWHITE			/*color of debugmessage*/\
 				, is_alert?ANSI_BRED:is_warning?ANSI_BYELLOW:ANSI_WHITE, timebuffer, file, line, function);
-			fprintf(stderr, "%s%s", header, buf);
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s", header, buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s", header, buf);
 		}
 	}
 	inNoNewLine = true;
@@ -316,7 +385,17 @@ void eDebugNoNewLine(const char* fmt, ...)
 	logOutput(lvlDebug, std::string(ncbuf));
 	if (logOutputConsole)
 	{
-		fprintf(stderr, "%s", logOutputColors? buf : ncbuf);
+		if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+		{
+			int n;
+			char obuf[1024];
+			snprintf(obuf, sizeof(obuf), "%s", logOutputColors? buf : ncbuf);
+			n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+			if(n<0)
+				fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+		}
+		else
+			fprintf(stderr, "%s", logOutputColors? buf : ncbuf);
 	}
 }
 
@@ -334,9 +413,33 @@ void eDebugNoNewLineEnd(const char* fmt, ...)
 	if (logOutputConsole)
 	{
 		if(!logOutputColors)
-			fprintf(stderr, "%s\n", ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s\n", ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s\n", ncbuf);
+		}
 		else
-			fprintf(stderr, "%s\n"ANSI_RESET, buf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s\n"ANSI_RESET, buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s\n"ANSI_RESET, buf);
+		}
 	}
 	inNoNewLine = false;
 }
@@ -359,7 +462,19 @@ void _eWarning(const char *file, int line, const char *function, const char* fmt
 	if (logOutputConsole)
 	{
 		if (!logOutputColors)
-			fprintf(stderr, "%s%s\n", header, ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s\n", header, ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s\n", header, ncbuf);
+		}
 		else
 		{
 			snprintf(header, sizeof(header),	\
@@ -369,7 +484,17 @@ void _eWarning(const char *file, int line, const char *function, const char* fmt
 				ANSI_BGREEN	"%s "		/*color of functionname*/\
 				ANSI_BWHITE			/*color of debugmessage*/\
 				, inNoNewLine?"\n":"", timebuffer, file, line, function);
-			fprintf(stderr, "%s%s\n"ANSI_RESET, header, buf);
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s\n"ANSI_RESET, header, buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s\n"ANSI_RESET, header, buf);
 		}
 	}
 	inNoNewLine = false;
@@ -416,7 +541,19 @@ void ePythonOutput(const char *file, int line, const char *function, const char 
 	if (logOutputConsole)
 	{
 		if (!logOutputColors)
-			fprintf(stderr, "%s%s", header, ncbuf);
+		{
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s", header, ncbuf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s", header, ncbuf);
+		}
 		else
 		{
 			if(line)
@@ -437,7 +574,18 @@ void ePythonOutput(const char *file, int line, const char *function, const char 
 					ANSI_BWHITE			/*color of debugmessage*/\
 					, inNoNewLine?"\n":"", ANSI_MAGENTA, timebuffer);
 			}
-			fprintf(stderr, "%s%s"ANSI_RESET, header, buf);
+
+			if(m_erroroutput && m_erroroutput->eErrorOutput::pipe_fd[1] && m_erroroutput->eErrorOutput::threadrunning)
+			{
+				int n;
+				char obuf[1024];
+				snprintf(obuf, sizeof(obuf), "%s%s"ANSI_RESET, header, buf);
+				n=write(m_erroroutput->eErrorOutput::pipe_fd[1], obuf, strlen(obuf));
+				if(n<0)
+					fprintf(stderr, "[eerror] row %d error: %s\n", __LINE__,strerror(errno));
+			}
+			else
+				fprintf(stderr, "%s%s"ANSI_RESET, header, buf);
 		}
 	}
 #endif

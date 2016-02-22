@@ -18,9 +18,11 @@ import urllib2
 import os
 import shutil
 import math
-from boxbranding import getBoxType,  getImageDistro, getMachineName, getMachineBrand, getImageVersion
+from boxbranding import getBoxType,  getImageDistro, getMachineName, getMachineBrand, getImageVersion, getMachineKernelFile, getMachineRootFile
 distro =  getImageDistro()
 ImageVersion = getImageVersion()
+ROOTFSBIN = getMachineRootFile()
+KERNELBIN = getMachineKernelFile()
 
 ImageVersion3 = ''
 if getMachineBrand() == "Vu+":
@@ -36,8 +38,8 @@ if ImageVersion3 == '':
 	feedurl_atv = 'http://images.mynonpublic.com/openatv/%s' %ImageVersion
 else:
 	feedurl_atv = 'http://images2.mynonpublic.com/openatv/%s' %ImageVersion3
-if ImageVersion == '4.1' or ImageVersion == '4.0' or ImageVersion == '3.0' or ImageVersion == '4.3' or ImageVersion == '5.1':
-	ImageVersion2= '4.2'
+if ImageVersion == '4.1' or ImageVersion == '4.0' or ImageVersion == '4.2' or ImageVersion == '4.3' or ImageVersion == '5.1':
+	ImageVersion2= '5.2'
 else:
 	ImageVersion2= '5.1'
 feedurl_atv2= 'http://images.mynonpublic.com/openatv/%s' %ImageVersion2
@@ -444,12 +446,12 @@ class doFlashImage(Screen):
 			for name in files:
 				if name.find('kernel') > -1 and name.endswith('.bin') and kernel:
 					binfile = os.path.join(path, name)
-					dest = flashTmp + '/kernel.bin'
+					dest = flashTmp + '/%s' %KERNELBIN
 					shutil.copyfile(binfile, dest)
 					kernel = False
-				elif name.find('root') > -1 and (name.endswith('.bin') or name.endswith('.jffs2')) and rootfs:
+				elif name.find('root') > -1 and (name.endswith('.bin') or name.endswith('.jffs2') or name.endswith('.bz2')) and rootfs:
 					binfile = os.path.join(path, name)
-					dest = flashTmp + '/rootfs.bin'
+					dest = flashTmp + '/%s' %ROOTFSBIN
 					shutil.copyfile(binfile, dest)
 					rootfs = False
 				elif name.find('uImage') > -1 and kernel:
