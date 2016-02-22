@@ -740,7 +740,6 @@ void ePicLoad::thread()
 
 void ePicLoad::decodePic()
 {
-
 	eDebug("[Picload] decode picture... %s",m_filepara->file);
 
 	switch(m_filepara->id)
@@ -846,7 +845,6 @@ void ePicLoad::decodeThumb()
 				::mkdir(cachedir.c_str(), 0755);
 
 			//resize for Thumbnail
-
 			int imx, imy;
 			if (m_filepara->ox <= m_filepara->oy)
 			{
@@ -866,6 +864,7 @@ void ePicLoad::decodeThumb()
 
 			m_filepara->ox = imx;
 			m_filepara->oy = imy;
+
 			if (m_filepara->bits == 8)
 			{
 				unsigned char * tmp = new unsigned char [m_filepara->ox * m_filepara->oy * 3];

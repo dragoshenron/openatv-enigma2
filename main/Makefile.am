@@ -54,7 +54,7 @@ enigma2_LDADD = \
 	@LIBDDVD_LIBS@ \
 	-ltuxtxt -ltuxtxt32bpp -lcrypt -lrt -ldl
 
-if ENABLE_LIBEPLAYER3
+if HAVE_LIBEPLAYER3
 enigma2_LDADD += \
 	-leplayer3
 endif
