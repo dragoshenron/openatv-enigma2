@@ -226,7 +226,7 @@ AC_ARG_WITH(libeplayer3,
 	AS_HELP_STRING([--with-libeplayer3],[use libeplayer3 as player engine support, yes or no]),
 	[with_libeplayer3=$withval],[with_libeplayer3=no])
 if test "$with_libeplayer3" = "yes"; then
-	PKG_CHECK_MODULES(LIBXINE, libeplayer3)
+	PKG_CHECK_MODULES(LIBEPLAYER3, libeplayer3)
 	AC_DEFINE([HAVE_LIBEPLAYER3],[1],[Define to 1 if you have libeplayer3])
 fi
 AM_CONDITIONAL(HAVE_LIBEPLAYER3, test "$with_libeplayer3" = "yes")
