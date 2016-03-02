@@ -40,6 +40,11 @@ class Timezones:
 			from enigma import e_tzset
 			e_tzset()
 
+		# set RTC offset for boxes with RTC in localtime
+		if getBoxType() in ('gb800solo', 'gb800se', 'gb800ue') or getBrandOEM().startswith('ini') or getBrandOEM() in ('fulan'):
+			from Tools.StbHardware import setRTCoffset
+			setRTCoffset()
+
 	def getTimezoneList(self):
 		return [ str(x[0]) for x in self.timezones ]
 
