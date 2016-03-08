@@ -52,7 +52,7 @@ def InstallSettings(name, link, date):
     # copy current settings
     if not os.path.exists(Directory + '/Settings/enigma2'):
         os.system('mkdir -p ' + Directory + '/Settings/enigma2')
-    #os.system('cp -r /etc/enigma2/ ' + Directory + '/Settings/enigma2')
+
     now = time.time()
     ttime = time.localtime(now)
     tt = str(ttime[0])[2:] + str('{0:02d}'.format(ttime[1])) + str('{0:02d}'.format(ttime[2])) + '_' + str('{0:02d}'.format(ttime[3])) + str('{0:02d}'.format(ttime[4])) + str('{0:02d}'.format(ttime[5]))
@@ -128,8 +128,11 @@ class CheckTimer:
 
     def CBupdate(self, req):
         if req:
-            pass
+            config.pud.update_question.value = True
             self.startDownload(self.name, self.link, ConverDate(self.date))
+        else:
+            config.pud.update_question.value = False
+        config.pud.save()
         
     def startTimerSetting(self):
 
@@ -152,9 +155,14 @@ class CheckTimer:
                         self.date = date
                         self.name = name
                         self.link = link
-                        #config.pud.showmessage.value = False
+                        yesno_default = config.pud.update_question.value
                         print "Programmlisten-Updater: NEW SETTINGS DXANDY"
-                        self.session.openWithCallback(self.CBupdate, MessageBox, _('New Setting DXAndy ') + name + _(' of ') + ConverDate(date) + _(' available !!' + "\n\n" + "Do you want to install the new settingslist?"), MessageBox.TYPE_YESNO)
+                        if config.pud.just_update.value:
+                            # Update without information
+                            self.startDownload(self.name, self.link, ConverDate(self.date))
+                        else:
+                            # Auto update with confrimation
+                            self.session.openWithCallback(self.CBupdate, MessageBox, _('New Setting DXAndy ') + name + _(' of ') + ConverDate(date) + _(' available !!' + "\n\n" + "Do you want to install the new settingslist?"), MessageBox.TYPE_YESNO, default=yesno_default, timeout=60)
                     else:
                         print "Programmlisten-Updater: NO NEW UPDATE AVAILBLE"
                     break

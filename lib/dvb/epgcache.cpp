@@ -616,16 +616,16 @@ void eEPGCache::DVBChannelStateChanged(iDVBChannel *chan)
 					eDebug("[eEPGCache] remove channel %p", chan);
 					if (it->second->state >= 0)
 						messages.send(Message(Message::leaveChannel, chan));
-					pthread_mutex_lock(&it->second->channel_active);
+					channel_data* cd = it->second;
+					pthread_mutex_lock(&cd->channel_active);
 					{
 						singleLock s(channel_map_lock);
 						m_knownChannels.erase(it);
 					}
-					pthread_mutex_unlock(&it->second->channel_active);
-					delete it->second;
-					it->second = 0;
+					pthread_mutex_unlock(&cd->channel_active);
+					delete cd;
 					// -> gotMessage -> abortEPG
-					break;
+					return;
 				}
 				default: // ignore all other events
 					return;
@@ -1229,9 +1229,16 @@ void eEPGCache::load()
 {
 	if (m_filename.empty())
 		m_filename = "/hdd/epg.dat";
-	const char* EPGDAT = m_filename.c_str();
+
+	std::vector<char> vEPGDAT(m_filename.begin(), m_filename.end());
+	vEPGDAT.push_back('\0');
+	const char* EPGDAT = &vEPGDAT[0];
+
 	std::string filenamex = m_filename + ".loading";
-	const char* EPGDATX = filenamex.c_str();
+	std::vector<char> vEPGDATX(filenamex.begin(), filenamex.end());
+	vEPGDATX.push_back('\0');
+	const char* EPGDATX = &vEPGDATX[0];
+
 	FILE *f = fopen(EPGDAT, "rb");
 	int renameResult;
 	if (f == NULL)
@@ -1289,7 +1296,7 @@ void eEPGCache::load()
 					if (event->n_crc)
 					{
 						event->crc_list = new uint32_t[event->n_crc];
-						fread( event->crc_list, event->n_crc, sizeof(uint32_t), f);
+						fread( event->crc_list, sizeof(uint32_t), event->n_crc, f);
 					}
 					eventData::CacheSize += sizeof(eventData) + event->n_crc * sizeof(uint32_t);
 					item.byEvent[event->getEventID()] = event;
@@ -1355,12 +1362,15 @@ void eEPGCache::save()
 	bool save_epg = eConfigManager::getConfigBoolValue("config.epg.saveepg");
 	if (save_epg)
 	{
-		const char* EPGDAT = m_filename.c_str();
 		if (eventData::isCacheCorrupt)
 			return;
 		// only save epg.dat if it's worth the trouble...
 		if (eventData::CacheSize < 10240)
 			return;
+
+		std::vector<char> vEPGDAT(m_filename.begin(), m_filename.end());
+		vEPGDAT.push_back('\0');
+		const char* EPGDAT = &vEPGDAT[0];
 	
 		/* create empty file */
 		FILE *f = fopen(EPGDAT, "wb");
@@ -1423,7 +1433,7 @@ void eEPGCache::save()
 				fwrite( &time_it->second->type, sizeof(uint8_t), 1, f );
 				fwrite( &len, sizeof(uint8_t), 1, f);
 				fwrite( time_it->second->rawEITdata, 10, 1, f);
-				fwrite( time_it->second->crc_list, time_it->second->n_crc, sizeof(uint32_t), f);
+				fwrite( time_it->second->crc_list, sizeof(uint32_t), time_it->second->n_crc, f);
 				++cnt;
 			}
 		}
@@ -3608,10 +3618,12 @@ void eEPGCache::privateSectionRead(const uniqueEPGKey &current_service, const ui
 		eventMap::iterator evIt( evMap.find(it->second.second) );
 		if ( evIt != evMap.end() )
 		{
+			// time_event_map can have other timestamp -> get timestamp from eventData
+			time_t ev_time = evIt->second->getStartTime();
 			delete evIt->second;
 			evMap.erase(evIt);
+			tmMap.erase(ev_time);
 		}
-		tmMap.erase(it->second.first);
 	}
 	time_event_map.clear();
 
