@@ -179,43 +179,8 @@ eDVBResourceManager::eDVBResourceManager()
 	eDebug("found %zd adapter, %zd frontends(%zd sim) and %zd demux, boxtype %d",
 		m_adapter.size(), m_frontend.size(), m_simulate_frontend.size(), m_demux.size(), m_boxtype);
 
-#if defined(__sh__)
-		/*
-		 * this is a strange hack: the drivers seem to only work correctly after
-		 * demux0 has been used once. After that, we can use demux1,2,...
-		 */
-	initDemux(0);
-		/* for pip demux1 also be used once */
-	initDemux(1);
-#endif
-
 	CONNECT(m_releaseCachedChannelTimer->timeout, eDVBResourceManager::releaseCachedChannel);
 }
-
-#if defined(__sh__)
-void eDVBResourceManager::initDemux(int num_demux)
-{
-	char filename[32];
-	sprintf(filename, "/dev/dvb/adapter0/demux%d", num_demux);
-	int dmx = open(filename, O_RDWR | O_CLOEXEC);
-	if (dmx < 0)
-	{
-		eDebug("can't open %s (%m)", filename);
-	}
-	else
-	{
-		struct dmx_pes_filter_params filter;
-		memset(&filter, 0, sizeof(filter));
-		filter.output = DMX_OUT_DECODER;
-		filter.input  = DMX_IN_FRONTEND;
-		filter.flags  = DMX_IMMEDIATE_START;
-		filter.pes_type = DMX_PES_VIDEO;
-		ioctl(dmx, DMX_SET_PES_FILTER, &filter);
-		ioctl(dmx, DMX_STOP);
-		close(dmx);
-	}
-}
-#endif
 
 void eDVBResourceManager::feStateChanged()
 {
@@ -1038,6 +1003,7 @@ RESULT eDVBResourceManager::allocateDemux(eDVBRegisteredFrontend *fe, ePtr<eDVBA
 
 	ePtr<eDVBRegisteredDemux> unused;
 
+#if not defined(__sh__)
 	if (m_boxtype == DM7025) // ATI
 	{
 		/* FIXME: hardware demux policy */
@@ -1111,6 +1077,52 @@ RESULT eDVBResourceManager::allocateDemux(eDVBRegisteredFrontend *fe, ePtr<eDVBA
 			}
 		}
 	}
+#else // we use our own algo for demux detection
+	int n=0;
+	for (; i != m_demux.end(); ++i, ++n)
+	{
+		if(fe)
+		{
+			if (!i->m_inuse)
+			{
+				if (!unused)
+				{
+					// take the first unused
+					//eDebug("\nallocate demux b = %d\n",n);
+					unused = i;
+				}
+			}
+			else if (i->m_adapter == fe->m_adapter && i->m_demux->getSource() == fe->m_frontend->getDVBID())
+			{
+				// take the demux allocated to the same
+				// frontend,  just create a new reference
+				demux = new eDVBAllocatedDemux(i);
+				//eDebug("\nallocate demux b = %d\n",n);
+				return 0;
+			}
+		}
+		else if(n == (m_demux.size() - 1))
+		{
+			// Always use the last demux for PVR
+			// it is assumed that the last demux is not
+			// attached to a frontend. That is, there
+			// should be one instance of dvr & demux
+			// devices more than of frontend devices.
+			// Otherwise, playback and timeshift might
+			// interfere recording.
+			if (i->m_inuse)
+			{
+				// just create a new reference
+				demux = new eDVBAllocatedDemux(i);
+				//eDebug("\nallocate demux c = %d\n",n);
+				return 0;
+			}
+			unused = i;
+			//eDebug("\nallocate demux d = %d\n", n);
+			break;
+		}
+	}
+#endif
 
 	if (unused)
 	{
