@@ -53,7 +53,7 @@ fbClass::fbClass(const char *fb)
 #if not defined(__sh__)
 	if (ioctl(fbFd, FBIOGET_VSCREENINFO, &screeninfo)<0)
 	{
-		eDebug("[fb] FBIOGET_VSCREENINFO: %m");
+		perror("FBIOGET_VSCREENINFO");
 		goto nolfb;
 	}
 #endif
