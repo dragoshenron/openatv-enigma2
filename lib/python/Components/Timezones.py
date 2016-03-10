@@ -1,6 +1,6 @@
 import xml.etree.cElementTree
 
-from os import environ, unlink, symlink
+from os import environ, unlink, symlink, path
 import time
 from Tools.StbHardware import setRTCoffset
 
