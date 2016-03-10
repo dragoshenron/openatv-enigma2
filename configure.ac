@@ -222,6 +222,14 @@ AC_ARG_WITH(stmfb,
 	[with_stmfb=$withval],[with_stmfb=no])
 AM_CONDITIONAL(HAVE_STMFB, test "$with_stmfb" = "yes")
 
+AC_ARG_WITH(libeplayer3,
+	AS_HELP_STRING([--with-libeplayer3],[use libeplayer3 as player engine support, yes or no]),
+	[with_libeplayer3=$withval],[with_libeplayer3=no])
+if test "$with_libeplayer3" = "yes"; then
+	AC_DEFINE([HAVE_LIBEPLAYER3],[1],[Define to 1 if you have libeplayer3])
+fi
+AM_CONDITIONAL(HAVE_LIBEPLAYER3, test "$with_libeplayer3" = "yes")
+
 AC_ARG_WITH(nolcd,
 	AC_HELP_STRING([--with-nolcd], [disable ascii based lcd, yes or no]),
 	[[withnolcd=$withval]],
