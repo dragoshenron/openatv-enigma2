@@ -217,11 +217,6 @@ if test `echo "$BOXTYPE" | cut -b 1-2` == "dm"; then
 	AC_DEFINE(KEY_PLAY_ACTUALLY_IS_KEY_PLAYPAUSE, 1,[define when rc sends a KEY_PLAY event for its KEY_PLAYPAUSE key])
 fi
 
-AC_ARG_WITH(stmfb,
-	AS_HELP_STRING([--with-stmfb],[use stmfb, yes or no]),
-	[with_stmfb=$withval],[with_stmfb=no])
-AM_CONDITIONAL(HAVE_STMFB, test "$with_stmfb" = "yes")
-
 AC_ARG_WITH(libeplayer3,
 	AS_HELP_STRING([--with-libeplayer3],[use libeplayer3 as player engine support, yes or no]),
 	[with_libeplayer3=$withval],[with_libeplayer3=no])
