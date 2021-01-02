@@ -2112,7 +2112,7 @@ msgstr "decodifica e registra ecm"
 #: lib/python/Components/RecordingConfig.py:18
 #: lib/python/Screens/TimerEntry.py:130
 msgid "don't descramble, record ecm"
-msgstr "non decodifico, registro wcm"
+msgstr "non decodifico, registro ecm"
 
 #: lib/python/Components/Sensors.py:70
 #, python-format
@@ -20188,4 +20188,4 @@ msgstr "Registrazioni & Timeshift"
 #~ msgstr "Mount periferiche"
 
 #~ msgid "Current location"
-#~ msgstr "Destionazione attuale"
+#~ msgstr "Destinazione attuale"
